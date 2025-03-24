@@ -1,4 +1,4 @@
-package com.smialko.moneyconverter.ui.theme
+package com.mc.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
