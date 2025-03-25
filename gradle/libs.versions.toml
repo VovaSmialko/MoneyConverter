@@ -82,6 +82,7 @@ moneyConvertor-android-library = { id = "moneyConvertor.android.library", versio
 moneyConvertor-jvm = { id = "moneyConvertor.jvm.library", version = "unspecified" }
 moneyConvertor-android-hilt = { id = "moneyConvertor.android.hilt", version = "unspecified" }
 moneyConvertor-android-compose = { id = "moneyConvertor.android.compose", version = "unspecified" }
+moneyConvertor-android-feature = { id = "moneyConvertor.android.feature", version = "unspecified" }
 
 
 

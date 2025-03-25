@@ -50,6 +50,10 @@ gradlePlugin {
             id = "moneyConvertor.android.compose"
             implementationClass = "AndroidLibraryComposeConventionPlugin"
         }
+        register("androidFeature") {
+            id = "moneyConvertor.android.feature"
+            implementationClass = "AndroidFeatureConventionPlugin"
+        }
     }
 }
 

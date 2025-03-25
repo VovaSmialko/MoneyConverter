@@ -70,5 +70,6 @@ dependencies {
 
     implementation(project(":core:network"))
     implementation(project(":core:designssystem"))
+    implementation(project(":feature:currency-convertor"))
 
 }

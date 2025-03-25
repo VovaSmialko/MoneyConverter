@@ -28,7 +28,7 @@ fun MCTextField(
     BasicTextField(
         value = value,
         onValueChange = { onValueChange(it) },
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFFEFEFEF))
             .fillMaxWidth()
