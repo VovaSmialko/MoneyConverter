@@ -2,8 +2,8 @@ import com.mc.convention.configureKotlinJvm
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-class JvmLibraryConventionPlugin : Plugin<Project> {
 
+internal class JvmLibraryConventionPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {

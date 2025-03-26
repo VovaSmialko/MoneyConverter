@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import com.mc.designsystem.theme.MoneyConverterTheme
 import com.mc.network.service.CurrencyService
 import dagger.hilt.android.AndroidEntryPoint
-import mc.currencyconvertor.CurrencyConvertorScreen
+import mc.currencyconvertor.CurrencyConvertorRoute
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -17,9 +17,10 @@ class MainActivity : ComponentActivity() {
     lateinit var service: CurrencyService
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MoneyConverterTheme {
-                CurrencyConvertorScreen()
+                CurrencyConvertorRoute()
             }
         }
     }

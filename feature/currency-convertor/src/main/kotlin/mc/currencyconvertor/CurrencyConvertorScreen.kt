@@ -1,6 +1,5 @@
 package mc.currencyconvertor
 
-import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -23,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -30,16 +30,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mc.designsystem.components.MCBackgroundScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mc.designssystem.R
+import com.mc.designsystem.components.MCBackgroundScreen
 import com.mc.designsystem.components.MCCard
 import com.mc.designsystem.components.MCTextField
 import com.mc.designsystem.components.MCTextMenu
@@ -47,15 +49,28 @@ import com.mc.designsystem.theme.MoneyConverterTheme
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun CurrencyConvertorRoute() {
+ fun CurrencyConvertorRoute(
+    viewModel: CurrencyConvertorViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-
+    CurrencyConvertorScreen(
+        uiState = uiState,
+        onFromCurrencyChange = viewModel::onFromCurrencyChange,
+        onToCurrencyChange = viewModel::onToCurrencyChange,
+        onSwap = viewModel::swapCurrencies
+    )
 }
 
 @Composable
-fun CurrencyConvertorScreen() {
-
+ fun CurrencyConvertorScreen(
+    uiState: CurrencyConvertorUiState,
+    onFromCurrencyChange:(CurrencyUiModel) -> Unit,
+    onToCurrencyChange:(CurrencyUiModel) -> Unit,
+    onSwap: () -> Unit
+) {
     MCBackgroundScreen {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -64,33 +79,36 @@ fun CurrencyConvertorScreen() {
             Spacer(modifier = Modifier.height(30.dp))
             Text(
                 text = stringResource(id = R.string.currency_convertor),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
+
             Spacer(modifier = Modifier.height(10.dp))
+
             Text(
                 text = stringResource(id = R.string.currency_convertor_description),
                 modifier = Modifier.padding(horizontal = 16.dp),
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Normal,
-                fontSize = 16.sp,
-                color = Color(0xff808080)
+                color = Color(0xff808080),
+                fontSize = 16.sp
             )
-            Spacer(modifier = Modifier.height(15.dp))
+
+            Spacer(modifier = Modifier.height(50.dp))
+
             CurrencyConvertorCard(
-                allCurrencies = listOf(),
-                fromCurrency = CurrencyUiModel("USD", ""),
-                toCurrency = CurrencyUiModel("UAH", ""),
-                onFromCurrencyUiModel = {},
-                onToCurrencyUiModel = {},
-                onSwap = {}
+                allCurrencies = uiState.allCurrencies,
+                fromCurrency = uiState.fromCurrency,
+                toCurrency = uiState.toCurrency,
+                onFromCurrencyChanged = onFromCurrencyChange,
+                onToCurrencyChanged = onToCurrencyChange,
+                onSwap = onSwap
             )
+
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
-                text = stringResource(id = R.string.indicative_exchane_rate),
+                text = "${stringResource(id = R.string.indicative_exchane_rate)} ${uiState.lastUpdated}",
                 modifier = Modifier.padding(horizontal = 22.dp),
                 style = MaterialTheme.typography.labelSmall
             )
@@ -98,19 +116,27 @@ fun CurrencyConvertorScreen() {
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Placeholder",
+                text = uiState.indicativeExchangeRate,
                 modifier = Modifier.padding(horizontal = 22.dp),
-                style = MaterialTheme.typography.titleSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     color = Color.Black
                 )
             )
 
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(30.dp)
-                )
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .testTag("loading")
+                    )
+                }
             }
         }
+
     }
 }
 
@@ -120,32 +146,36 @@ private fun CurrencyConvertorCard(
     allCurrencies: List<CurrencyUiModel>,
     fromCurrency: CurrencyUiModel,
     toCurrency: CurrencyUiModel,
-    onFromCurrencyUiModel: (CurrencyUiModel) -> Unit,
-    onToCurrencyUiModel: (CurrencyUiModel) -> Unit,
+    onFromCurrencyChanged: (CurrencyUiModel) -> Unit,
+    onToCurrencyChanged: (CurrencyUiModel) -> Unit,
     onSwap: () -> Unit
 ) {
-
     MCCard(
         modifier = modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-    )
-    {
+    ) {
         CurrencyInfoRow(
             label = stringResource(id = R.string.amount),
             selectedCurrency = fromCurrency,
             currencies = allCurrencies,
-            onCurrencyChange = onFromCurrencyUiModel
+            onCurrencyChange = onFromCurrencyChanged
         )
+
+
         Spacer(modifier = Modifier.height(20.dp))
-        CurrenciesSwapper(onSwap = onSwap)
+
+        CurrenciesSwapper(
+            onSwap = onSwap
+        )
+
         Spacer(modifier = Modifier.height(10.dp))
 
         CurrencyInfoRow(
             label = stringResource(id = R.string.converted_amount),
             selectedCurrency = toCurrency,
             currencies = allCurrencies,
-            onCurrencyChange = onToCurrencyUiModel
+            onCurrencyChange = onToCurrencyChanged
         )
     }
 }
@@ -161,10 +191,11 @@ private fun CurrencyInfoRow(
 
     val currencyCodes = remember(currencies) {
         currencies.map { it.code }
-
     }
 
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier
+    ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
 
         Spacer(modifier = Modifier.height(15.dp))
@@ -175,17 +206,19 @@ private fun CurrencyInfoRow(
         ) {
             AnimatedContent(
                 targetState = selectedCurrency.code,
-                modifier = Modifier.weight(1f), label = ""
+                modifier = Modifier.weight(1f),
             ) {
                 MCTextMenu(
                     selectedOption = it,
                     options = currencyCodes,
-                    onOptionSelected = { index ->
-                        onCurrencyChange(currencies[index].copy(value = selectedCurrency.value))
+                    onOptionSelected = { i ->
+                        onCurrencyChange(currencies[i].copy(value = selectedCurrency.value))
                     }
                 )
             }
+
             Spacer(modifier = Modifier.height(30.dp))
+
             MCTextField(
                 value = selectedCurrency.value,
                 onValueChange = { onCurrencyChange(selectedCurrency.copy(value = it)) },
@@ -210,10 +243,7 @@ fun CurrenciesSwapper(
 
     val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         HorizontalDivider()
         Box(
             modifier = Modifier
@@ -223,6 +253,7 @@ fun CurrenciesSwapper(
                 .clickable {
                     if (animatable.isRunning)
                         return@clickable
+
                     scope.launch {
                         onSwap()
                         animatable.animateTo(
@@ -230,7 +261,7 @@ fun CurrenciesSwapper(
                             tween(300)
                         )
                     }
-                },
+                }.testTag("swap"),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -247,8 +278,13 @@ fun CurrenciesSwapper(
 
 @Preview
 @Composable
-private fun Screen() {
+private fun CurrencyConvertorScreenPreview() {
     MoneyConverterTheme {
-        CurrencyConvertorScreen()
+        CurrencyConvertorScreen(
+            uiState = CurrencyConvertorUiState.PreviewData,
+            onFromCurrencyChange = {},
+            onToCurrencyChange = {},
+            onSwap = {}
+        )
     }
 }
