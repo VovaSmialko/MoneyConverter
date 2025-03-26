@@ -6,3 +6,9 @@ plugins {
 android {
     namespace = "com.mc.currencyconvertor"
 }
+
+
+dependencies {
+    implementation(project(":core:data"))
+    implementation(project(":core:model"))
+}
