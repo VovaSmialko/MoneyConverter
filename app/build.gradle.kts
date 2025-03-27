@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.moneyConvertor.android.hilt)
+    alias(libs.plugins.moneyConvertor.android.room)
 }
 
 android {
@@ -60,6 +61,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    implementation(libs.androidx.work)
+    implementation(libs.hilt.ext.work)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -70,6 +75,8 @@ dependencies {
 
     implementation(project(":core:network"))
     implementation(project(":core:designssystem"))
+    implementation(project(":core:database"))
+    implementation(project(":core:data"))
     implementation(project(":feature:currency-convertor"))
 
 }

@@ -1,24 +1,32 @@
 package mc.currencyconvertor
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mc.data.repository.CurrencyRepository
+import com.mc.data.worker.WorkManagerSyncManager
 import com.mc.model.currency_convertor.CurrencyInfo
 import com.mc.model.currency_convertor.ExchangeRates
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import androidx.core.content.edit
 
 @HiltViewModel
 class CurrencyConvertorViewModel @Inject constructor(
-    private val currencyRepository: CurrencyRepository
+    private val currencyRepository: CurrencyRepository,
+    private val sharedPreferences: SharedPreferences,
+    workManagerSyncManager: WorkManagerSyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CurrencyConvertorUiState())
@@ -27,27 +35,39 @@ class CurrencyConvertorViewModel @Inject constructor(
 
     private lateinit var exchangeRates: ExchangeRates
 
+    companion object {
+        const val fromCurrencyKey = "fromCurrencyKey"
+        const val toCurrencyKey = "toCurrencyKey"
+    }
+
     init {
+        workManagerSyncManager.isSyncing
+            .onEach { isLoading ->
+                _uiState.update {
+                    it.copy(isLoading = isLoading)
+                }
+            }.launchIn(viewModelScope)
         initUiState()
     }
 
     private fun initUiState() {
-        val handler = CoroutineExceptionHandler { coroutineContext, throwable ->
-
-        }
-        viewModelScope.launch(handler) {
-            exchangeRates = currencyRepository.getExchangeRates()
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    allCurrencies = exchangeRates.rates.keys.map {
-                        CurrencyUiModel(code = it, "")
-                    },
-                    lastUpdated = fromDate(exchangeRates.lastUpdatedDate)
-                )
-            }
-            setInitialCurrencies()
-        }
+        currencyRepository
+            .getExchangeRates()
+            .retryWhen { cause, _ -> cause is IllegalStateException}
+            .onEach { exchangeRates ->
+                if (exchangeRates.rates.isEmpty()) return@onEach
+                this.exchangeRates = exchangeRates
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        allCurrencies = exchangeRates.rates.keys.map {
+                            CurrencyUiModel(code = it, "")
+                        },
+                        lastUpdated = fromDate(exchangeRates.lastUpdatedDate)
+                    )
+                }
+                setInitialCurrencies()
+            }.launchIn(viewModelScope)
     }
 
     private fun setInitialCurrencies() {
@@ -68,8 +88,17 @@ class CurrencyConvertorViewModel @Inject constructor(
     }
 
     private fun getUserCurrencies(): Pair<CurrencyInfo, CurrencyInfo> {
-        val fromCurrency = CurrencyInfo("USD", exchangeRates.rates.getValue("USD"))
-        val toCurrency = CurrencyInfo("EUR", exchangeRates.rates.getValue("EUR"))
+        val fromCurrencyCode = sharedPreferences.getString(fromCurrencyKey, null)
+        val toCurrencyCode = sharedPreferences.getString(toCurrencyKey, null)
+        var fromCurrency = CurrencyInfo("USD", exchangeRates.rates.getValue("USD"))
+        var toCurrency = CurrencyInfo("EUR", exchangeRates.rates.getValue("EUR"))
+
+        if (fromCurrencyCode != null) {
+            fromCurrency = CurrencyInfo(fromCurrencyCode, exchangeRates.rates.getValue(fromCurrencyCode))
+        }
+        if (toCurrencyCode != null) {
+            toCurrency = CurrencyInfo(toCurrencyCode, exchangeRates.rates.getValue(toCurrencyCode))
+        }
 
         return Pair(fromCurrency, toCurrency)
     }
@@ -96,6 +125,7 @@ class CurrencyConvertorViewModel @Inject constructor(
                         )
                     }
                 }
+                sharedPreferences.edit { putString(fromCurrencyKey, fromCurrency.code) }
             }
 
             is StringToDoubleConversionResult.Empty -> {
@@ -121,6 +151,7 @@ class CurrencyConvertorViewModel @Inject constructor(
             onFromCurrencyChange(
                 fromCurrency = uiState.value.fromCurrency
             )
+            sharedPreferences.edit { putString(toCurrencyKey, toCurrency.code) }
             return
         }
 

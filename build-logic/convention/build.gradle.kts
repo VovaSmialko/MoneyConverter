@@ -29,6 +29,7 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.android.tools.common)
     compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
 }
 
 gradlePlugin {
@@ -53,6 +54,10 @@ gradlePlugin {
         register("androidFeature") {
             id = "moneyConvertor.android.feature"
             implementationClass = "AndroidFeatureConventionPlugin"
+        }
+        register("androidRoom") {
+            id = "moneyConvertor.android.room"
+            implementationClass = "AndroidRoomConventionPlugin"
         }
     }
 }
